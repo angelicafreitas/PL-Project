@@ -1,18 +1,39 @@
 %{
-int count = 0;
+#include<glib.h>
+GPtrArray* tokens;
+GHashTable* noTerm;
+
+void iteratorTokens(void* data, void* not_used){
+    printf("FIXME\t{return %s;}\n", (char*) data);
+}
+
+void iteratorNoTerm(void* key, void* value, void* not_used){
+    printf("%s", (char*) key);
+}
+
+void end_parser(){
+    g_ptr_array_foreach(tokens, iteratorTokens, NULL);
+    if(g_hash_table_size(noTerm) > 0){
+        printf("[");
+        g_hash_table_foreach(noTerm, iteratorNoTerm, NULL);
+        printf("]\t{return yytext[0];}\n");
+    }
+}
+
 %}
 %option stack
 %x TOKEN C GRAM 
 %%
 
-^%(?i:token)[ ]*        {yy_push_state(TOKEN);printf("%%%%\n");}
+^%(?i:token)[ ]*        {yy_push_state(TOKEN);}
 <TOKEN>[ ]+             { ; }
-<TOKEN>[A-z]+           {printf("FIXME\t{return %s;}\n", yytext);}
+<TOKEN>[<].*[>]         { ; }
+<TOKEN>[A-z]+           {g_ptr_array_add(tokens,strdup(yytext));}
 <TOKEN>\n               {yy_pop_state();}
 
 ^[ ]*%%[ ]*[\r\n]*      {yy_push_state(GRAM);}
 
-<GRAM>'./'              {if(count == 0) {printf("[");};printf("%s", yytext + 1);count++;}
+<GRAM>'./'              {g_hash_table_insert(noTerm,strdup(yytext + 1),NULL);}
 <GRAM>[^'][{][^']       {yy_push_state(C);}
 <GRAM>.|\n              { ; }
 
@@ -20,13 +41,14 @@ int count = 0;
 <C>[}]                  {yy_pop_state();}
 <C>.|[\r\n]             { ; }
 
-<GRAM>^[ ]*%%           {yy_pop_state();if(count > 0) {printf("]\t{return yytext[0];}\n");} printf("%%%%\n");}
+<GRAM>^[ ]*%%           {yy_pop_state();puts("%%");end_parser(); puts("%%");}
 
 .|\n                    { ; }
 
 %%
 int yywrap()
 { return(1); }
+
 
 int main(int argc, char* argv[])
 {
@@ -37,6 +59,9 @@ int main(int argc, char* argv[])
             yyin = fp;
     }
     
+    tokens = g_ptr_array_new();
+    noTerm = g_hash_table_new(g_str_hash, g_str_equal);
+
     yylex();
 
     return 0;
