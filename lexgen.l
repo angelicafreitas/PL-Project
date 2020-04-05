@@ -39,7 +39,7 @@ void end_parser(){
 
 ^[ ]*%%[ ]*[\r\n]*      {yy_push_state(GRAM);}
 
-<GRAM>'.[nrt0b]*/'              {g_hash_table_insert(noTerm,strdup(yytext + 1),NULL);}
+<GRAM>'.[nrt0b]*/'      {g_hash_table_insert(noTerm,strdup(yytext + 1),NULL);}
 <GRAM>[^'][{][^']       {yy_push_state(C);}
 <GRAM>.|\n              { ; }
 
