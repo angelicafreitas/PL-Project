@@ -22,18 +22,24 @@ void end_parser(){
 
 %}
 %option stack
-%x TOKEN C GRAM 
+%x TOKEN C GRAM COMMENT
 %%
 
 ^%(?i:token)[ ]*        {yy_push_state(TOKEN);}
+
 <TOKEN>[ ]+             { ; }
 <TOKEN>[<].*[>]         { ; }
+<TOKEN>[/][/]           {yy_pop_state();}
+<TOKEN>[/][*]           {yy_push_state(COMMENT);}
 <TOKEN>[A-z]+           {g_ptr_array_add(tokens,strdup(yytext));}
 <TOKEN>\n               {yy_pop_state();}
 
+<COMMENT>[*][/]         {yy_pop_state();}
+<COMMENT>.|\n           { ; }
+
 ^[ ]*%%[ ]*[\r\n]*      {yy_push_state(GRAM);}
 
-<GRAM>'./'              {g_hash_table_insert(noTerm,strdup(yytext + 1),NULL);}
+<GRAM>'.[nrt0b]*/'              {g_hash_table_insert(noTerm,strdup(yytext + 1),NULL);}
 <GRAM>[^'][{][^']       {yy_push_state(C);}
 <GRAM>.|\n              { ; }
 
